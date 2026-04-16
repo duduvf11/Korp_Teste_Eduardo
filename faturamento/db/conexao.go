@@ -3,17 +3,17 @@ package db
 import (
 	"log"
 	"os"
-	
+
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"github.com/joho/godotenv"
 
-	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/models"
+	"github.com/duduvf11/Korp_Teste_Eduardo/faturamento/models"
 )
 
 var DB *gorm.DB
 
-func ConectaComBancoDeDados() {
+func ConectarBancoDeDados() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Erro ao carregar o arquivo .env")
@@ -26,7 +26,7 @@ func ConectaComBancoDeDados() {
 		log.Panic("Erro ao conectar com o banco de dados:", err)
 	}
 
-	banco.AutoMigrate(&models.Produto{})
-	
+	banco.AutoMigrate(&models.NotaFiscal{}, &models.ItemNota{})
+
 	DB = banco
 }
