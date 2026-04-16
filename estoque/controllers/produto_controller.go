@@ -16,7 +16,7 @@ func CriarProduto(c *gin.Context) {
 		return
 	}
 
-	// TODO: Salvar esse produto no banco de dados
+	db.DB.Create(&produto)
 	c.JSON(http.StatusCreated, produto)
 }
 
