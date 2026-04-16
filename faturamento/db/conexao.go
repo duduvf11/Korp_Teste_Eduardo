@@ -2,15 +2,24 @@ package db
 
 import (
 	"log"
+	"os"
+
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
 	"github.com/duduvf11/Korp_Teste_Eduardo/faturamento/models"
 )
 
 var DB *gorm.DB
 
 func ConectarBancoDeDados() {
-	dsn := "host=localhost user=postgres password=Andrea021025@ dbname=faturamento_db port=5433 sslmode=disable"
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Erro ao carregar o arquivo .env")
+	}
+
+	dsn := os.Getenv("DB_URL")
 
 	banco, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
