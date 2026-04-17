@@ -1,0 +1,22 @@
+<h3>Cadastrar Novo Produto</h3>
+
+<form (ngSubmit)="salvarProduto()">
+
+  <div>
+    <label for="descricao">Descrição:</label>
+    <input type="text" name="descricao" [(ngModel)]="produto.descricao" placeholder="Nome do produto">
+  </div>
+
+  <div>
+    <label for="saldo">Saldo:</label>
+    <input type="number" name="saldo" [(ngModel)]="produto.saldo" placeholder="Quantidade">
+  </div>
+
+  <div>
+    <label for="preco">Preço:</label>
+    <input type="number" name="preco" [(ngModel)]="produto.preco" placeholder="Valor">
+  </div>
+
+  <button type="submit">Salvar Produto</button>
+
+</form>
