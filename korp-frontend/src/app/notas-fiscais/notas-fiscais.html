@@ -1,0 +1,25 @@
+<h3>Emitir Nova Nota Fiscal</h3>
+
+<div>
+  <label>Cliente:</label>
+  <input type="text" [(ngModel)]="notaAtual.cliente" placeholder="Nome do cliente">
+</div>
+
+<hr>
+
+<h4>Escolher Produtos</h4>
+<div>
+  <label for="produto">Produto:</label>
+  <select id="produto">
+    <option value="">Selecione um produto da prateleira...</option>
+
+    @for (item of produtosDisponiveis; track item.id) {
+      <option [value]="item.id">
+        {{ item.descricao }} - {{ item.preco | currency:'BRL' }}
+      </option>
+    }
+  </select>
+
+  <label for="quantidade">Quantidade:</label>
+  <input type="number" id="quantidade" placeholder="Qtd">
+</div>

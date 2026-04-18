@@ -1,9 +1,10 @@
 package models
 
 type NotaFiscal struct {
-	ID       int        `json:"id"`
-	Cliente  string     `json:"cliente"`
-	Item     []ItemNota `json:"itens"`
+	ID       	int        `json:"id"`
+	Cliente  	string     `json:"cliente"`
+	EstaAberta 	bool       `json:"esta_aberta"`
+	Item     	[]ItemNota `json:"itens"`
 
 }
 
