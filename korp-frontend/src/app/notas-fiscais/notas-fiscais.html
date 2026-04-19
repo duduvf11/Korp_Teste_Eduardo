@@ -1,13 +1,13 @@
-<section class="card-notas">
+<section class="card-notas" data-testid="notas-form-card">
   <h3>Emitir Nova Nota Fiscal</h3>
   <p class="status-inicial">Status inicial da nota: <strong>Aberta</strong></p>
 
   @if (mensagemSucesso()) {
-    <p class="mensagem sucesso">{{ mensagemSucesso() }}</p>
+    <p class="mensagem sucesso" data-testid="notas-mensagem-sucesso">{{ mensagemSucesso() }}</p>
   }
 
   @if (mensagemErro()) {
-    <p class="mensagem erro">{{ mensagemErro() }}</p>
+    <p class="mensagem erro" data-testid="notas-mensagem-erro">{{ mensagemErro() }}</p>
   }
 
   <div class="linha-formulario">
@@ -18,6 +18,7 @@
         type="text"
         name="cliente"
         [(ngModel)]="clienteNotaAtual"
+        data-testid="nota-cliente-input"
         placeholder="Nome do cliente"
       >
     </div>
@@ -30,7 +31,7 @@
   <div class="linha-formulario linha-item">
     <div class="campo-inline campo-produto">
       <label for="produto">Produto:</label>
-      <select id="produto" name="produtoSelecionado" [(ngModel)]="produtoSelecionadoCodigo">
+      <select id="produto" name="produtoSelecionado" [(ngModel)]="produtoSelecionadoCodigo" data-testid="nota-produto-select">
         <option [ngValue]="null">Selecione um produto da prateleira...</option>
 
         @for (item of produtosDisponiveis(); track trackProduto($index, item)) {
@@ -48,23 +49,24 @@
         id="quantidade"
         name="quantidadeSelecionada"
         [(ngModel)]="quantidadeSelecionada"
+        data-testid="nota-quantidade-input"
         min="1"
         placeholder="Qtd"
       >
     </div>
 
-    <button class="btn btn-secondary" type="button" (click)="adicionarItem()">Adicionar item</button>
+    <button class="btn btn-secondary" type="button" (click)="adicionarItem()" data-testid="nota-adicionar-item-btn">Adicionar item</button>
   </div>
 
   <h4>Itens da nota em montagem</h4>
 
-  <ul class="lista-itens-montagem">
+  <ul class="lista-itens-montagem" data-testid="nota-itens-montagem-lista">
     @for (item of itensNotaAtual(); track trackItemNotaAtual($index, item)) {
-      <li>
+      <li [attr.data-testid]="'nota-item-montagem-' + item.produto_id">
         <span>
           {{ obterDescricaoProduto(item.produto_id) }} - Quantidade: {{ item.quantidade }}
         </span>
-        <button type="button" class="btn btn-danger btn-sm" (click)="removerItem(item.produto_id)">
+        <button type="button" class="btn btn-danger btn-sm" (click)="removerItem(item.produto_id)" [attr.data-testid]="'nota-item-remover-' + item.produto_id">
           Remover
         </button>
       </li>
@@ -73,12 +75,12 @@
     }
   </ul>
 
-  <button type="button" class="btn btn-primary botao-salvar-nota" [disabled]="salvandoNota()" (click)="salvarNotaFiscal()">
+  <button type="button" class="btn btn-primary botao-salvar-nota" [disabled]="salvandoNota()" (click)="salvarNotaFiscal()" data-testid="nota-salvar-btn">
     {{ salvandoNota() ? 'Salvando...' : 'Salvar Nota Fiscal' }}
   </button>
 </section>
 
-<section class="card-notas">
+<section class="card-notas" data-testid="notas-lista-card">
   <h3>Notas Fiscais Emitidas</h3>
 
   @if (carregandoNotas()) {
@@ -99,11 +101,11 @@
 
       <tbody>
         @for (nota of notasFiscais(); track trackNota($index, nota)) {
-          <tr>
+          <tr [attr.data-testid]="'nota-row-' + nota.id">
             <td data-label="Numero">{{ nota.id }}</td>
             <td data-label="Cliente">{{ nota.cliente }}</td>
             <td data-label="Status">
-              <span [class.status-aberta]="nota.esta_aberta" [class.status-fechada]="!nota.esta_aberta">
+              <span [class.status-aberta]="nota.esta_aberta" [class.status-fechada]="!nota.esta_aberta" [attr.data-testid]="'nota-status-' + nota.id">
                 {{ nota.esta_aberta ? 'Aberta' : 'Fechada' }}
               </span>
             </td>
@@ -125,6 +127,7 @@
                     class="btn btn-secondary btn-sm"
                     type="button"
                     (click)="imprimirNota(nota)"
+                    [attr.data-testid]="'nota-imprimir-' + nota.id"
                     [disabled]="estaProcessandoNota(nota.id)"
                   >
                     {{ textoBotaoImpressao(nota) }}
@@ -134,6 +137,7 @@
                     class="btn btn-danger btn-sm"
                     type="button"
                     (click)="cancelarNota(nota)"
+                    [attr.data-testid]="'nota-cancelar-' + nota.id"
                     [disabled]="estaProcessandoNota(nota.id)"
                   >
                     {{ textoBotaoCancelar(nota) }}
@@ -144,6 +148,7 @@
                   class="btn btn-danger btn-sm"
                   type="button"
                   (click)="solicitarExclusaoNota(nota)"
+                  [attr.data-testid]="'nota-deletar-' + nota.id"
                   [disabled]="estaProcessandoNota(nota.id)"
                 >
                   {{ textoBotaoDeletar(nota) }}
@@ -153,7 +158,7 @@
           </tr>
         } @empty {
           <tr>
-            <td class="linha-vazia" colspan="5">Nenhuma nota fiscal emitida ate o momento.</td>
+            <td class="linha-vazia" colspan="5" data-testid="notas-lista-vazia">Nenhuma nota fiscal emitida ate o momento.</td>
           </tr>
         }
       </tbody>
@@ -162,15 +167,15 @@
 </section>
 
 @if (confirmacaoExclusaoNota(); as notaExclusao) {
-  <div class="confirm-overlay">
-    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de nota">
+  <div class="confirm-overlay" data-testid="nota-confirmacao-overlay">
+    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de nota" data-testid="nota-confirmacao-modal">
       <h4 class="confirm-title">Confirmar exclusão de nota fiscal</h4>
       <p class="confirm-text">Você está prestes a excluir a nota número <strong>{{ notaExclusao.id }}</strong> do cliente <strong>{{ notaExclusao.cliente }}</strong>.</p>
       <p class="confirm-text">Essa ação não pode ser desfeita.</p>
 
       <div class="confirm-actions">
-        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null">Voltar</button>
-        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null">{{ textoBotaoConfirmarExclusaoNota() }}</button>
+        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null" data-testid="nota-confirmacao-cancelar">Voltar</button>
+        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null" data-testid="nota-confirmacao-confirmar">{{ textoBotaoConfirmarExclusaoNota() }}</button>
       </div>
     </dialog>
   </div>

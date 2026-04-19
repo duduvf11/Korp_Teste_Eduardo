@@ -1,15 +1,15 @@
-<section class="produtos-card">
+<section class="produtos-card" data-testid="produtos-form-card">
   <h3>{{ modoEdicao() ? 'Editar Produto' : 'Cadastrar Novo Produto' }}</h3>
 
   @if (mensagemSucesso()) {
-    <p class="mensagem sucesso">{{ mensagemSucesso() }}</p>
+    <p class="mensagem sucesso" data-testid="produtos-mensagem-sucesso">{{ mensagemSucesso() }}</p>
   }
 
   @if (mensagemErro()) {
-    <p class="mensagem erro">{{ mensagemErro() }}</p>
+    <p class="mensagem erro" data-testid="produtos-mensagem-erro">{{ mensagemErro() }}</p>
   }
 
-  <form class="produtos-form" (ngSubmit)="salvarProduto()">
+  <form class="produtos-form" (ngSubmit)="salvarProduto()" data-testid="produtos-form">
     <div class="form-grid">
       <div class="campo">
         <label for="codigo">Código:</label>
@@ -20,36 +20,37 @@
           [(ngModel)]="produto.codigo"
           min="1"
           placeholder="Codigo do produto"
+          data-testid="produto-codigo-input"
           [disabled]="modoEdicao()"
         >
       </div>
 
       <div class="campo">
         <label for="descricao">Descrição:</label>
-        <input type="text" id="descricao" name="descricao" [(ngModel)]="produto.descricao" placeholder="Nome do produto">
+        <input type="text" id="descricao" name="descricao" [(ngModel)]="produto.descricao" placeholder="Nome do produto" data-testid="produto-descricao-input">
       </div>
 
       <div class="campo">
         <label for="saldo">Saldo:</label>
-        <input type="number" id="saldo" name="saldo" [(ngModel)]="produto.saldo" placeholder="Quantidade">
+        <input type="number" id="saldo" name="saldo" [(ngModel)]="produto.saldo" placeholder="Quantidade" data-testid="produto-saldo-input">
       </div>
 
       <div class="campo">
         <label for="preco">Preço:</label>
-        <input type="number" id="preco" name="preco" [(ngModel)]="produto.preco" placeholder="Valor">
+        <input type="number" id="preco" name="preco" [(ngModel)]="produto.preco" placeholder="Valor" data-testid="produto-preco-input">
       </div>
     </div>
 
     <div class="acoes-form">
-      <button class="btn btn-primary" type="submit">{{ modoEdicao() ? 'Atualizar Produto' : 'Salvar Produto' }}</button>
+      <button class="btn btn-primary" type="submit" data-testid="produto-salvar-btn">{{ modoEdicao() ? 'Atualizar Produto' : 'Salvar Produto' }}</button>
       @if (modoEdicao()) {
-        <button class="btn btn-secondary" type="button" (click)="cancelarEdicao()">Cancelar Edição</button>
+        <button class="btn btn-secondary" type="button" (click)="cancelarEdicao()" data-testid="produto-cancelar-edicao-btn">Cancelar Edição</button>
       }
     </div>
   </form>
 </section>
 
-<section class="produtos-card">
+<section class="produtos-card" data-testid="produtos-lista-card">
   <h3>Produtos em Estoque</h3>
 
   <div class="tabela-scroll">
@@ -65,19 +66,19 @@
       </thead>
       <tbody>
         @for (item of listaProdutos(); track item.codigo) {
-          <tr>
+          <tr [attr.data-testid]="'produto-row-' + item.codigo">
             <td data-label="Codigo">{{ item.codigo }}</td>
             <td data-label="Descricao">{{ item.descricao }}</td>
             <td data-label="Saldo">{{ item.saldo }}</td>
             <td data-label="Preco">{{ item.preco | currency:'BRL' }}</td>
             <td class="coluna-acoes" data-label="Acoes">
-              <button class="btn btn-secondary btn-sm" type="button" (click)="iniciarEdicao(item)">Editar</button>
-              <button class="btn btn-danger btn-sm" type="button" (click)="solicitarExclusaoProduto(item)">Deletar</button>
+              <button class="btn btn-secondary btn-sm" type="button" (click)="iniciarEdicao(item)" [attr.data-testid]="'produto-editar-' + item.codigo">Editar</button>
+              <button class="btn btn-danger btn-sm" type="button" (click)="solicitarExclusaoProduto(item)" [attr.data-testid]="'produto-deletar-' + item.codigo">Deletar</button>
             </td>
           </tr>
         } @empty {
           <tr>
-            <td class="linha-vazia" colspan="5">Nenhum produto cadastrado na despensa.</td>
+            <td class="linha-vazia" colspan="5" data-testid="produtos-lista-vazia">Nenhum produto cadastrado na despensa.</td>
           </tr>
         }
       </tbody>
@@ -86,15 +87,15 @@
 </section>
 
 @if (confirmacaoExclusaoProduto(); as produtoExclusao) {
-  <div class="confirm-overlay">
-    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de produto">
+  <div class="confirm-overlay" data-testid="produto-confirmacao-overlay">
+    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de produto" data-testid="produto-confirmacao-modal">
       <h4 class="confirm-title">Confirmar exclusão de produto</h4>
       <p class="confirm-text">Você está prestes a excluir o produto <strong>{{ produtoExclusao.descricao }}</strong> (código <strong>{{ produtoExclusao.codigo }}</strong>).</p>
       <p class="confirm-text">Essa ação não pode ser desfeita.</p>
 
       <div class="confirm-actions">
-        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null">Voltar</button>
-        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null">{{ textoBotaoConfirmarExclusaoProduto() }}</button>
+        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null" data-testid="produto-confirmacao-cancelar">Voltar</button>
+        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null" data-testid="produto-confirmacao-confirmar">{{ textoBotaoConfirmarExclusaoProduto() }}</button>
       </div>
     </dialog>
   </div>

@@ -19,8 +19,10 @@ import (
 
 const (
 	rotaProdutosTeste            = "/produtos"
+	filtroCodigoTeste            = "codigo = ?"
 	formatoStatusInesperadoTeste = "status inesperado: esperado %d, obtido %d. body=%s"
 	formatoErroInserirBaseTeste  = "erro ao inserir produto base: %v"
+	formatoCodigoErroInesperado  = "codigo de erro inesperado: %+v"
 )
 
 func setupRouterEstoque(t *testing.T) *gin.Engine {
@@ -166,7 +168,7 @@ func TestDeletarProdutoRota(t *testing.T) {
 	}
 
 	var produto models.Produto
-	err := db.DB.Where("codigo = ?", 3).First(&produto).Error
+	err := db.DB.Where(filtroCodigoTeste, 3).First(&produto).Error
 	if err == nil {
 		t.Fatalf("produto nao foi removido do banco")
 	}
@@ -188,11 +190,89 @@ func TestBaixarEstoqueRota(t *testing.T) {
 	}
 
 	var produto models.Produto
-	if err := db.DB.Where("codigo = ?", 11).First(&produto).Error; err != nil {
+	if err := db.DB.Where(filtroCodigoTeste, 11).First(&produto).Error; err != nil {
 		t.Fatalf("erro ao buscar produto atualizado: %v", err)
 	}
 
 	if produto.Saldo != 7 {
 		t.Fatalf("saldo inesperado apos baixa: esperado 7, obtido %d", produto.Saldo)
+	}
+}
+
+func TestCriarProdutoCodigoDuplicadoRota(t *testing.T) {
+	router := setupRouterEstoque(t)
+
+	if err := db.DB.Create(&models.Produto{Codigo: 50, Descricao: "Duplicado", Saldo: 1, Preco: 5}).Error; err != nil {
+		t.Fatalf(formatoErroInserirBaseTeste, err)
+	}
+
+	res := performJSONRequest(t, router, http.MethodPost, rotaProdutosTeste, map[string]any{
+		"codigo":    50,
+		"descricao": "Produto Repetido",
+		"saldo":     3,
+		"preco":     10,
+	})
+
+	if res.Code != http.StatusConflict {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusConflict, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "CODIGO_DUPLICADO" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
+	}
+}
+
+func TestAtualizarProdutoComCodigoDivergenteRota(t *testing.T) {
+	router := setupRouterEstoque(t)
+
+	if err := db.DB.Create(&models.Produto{Codigo: 14, Descricao: "Base", Saldo: 4, Preco: 44}).Error; err != nil {
+		t.Fatalf(formatoErroInserirBaseTeste, err)
+	}
+
+	res := performJSONRequest(t, router, http.MethodPut, "/produtos/14", map[string]any{
+		"codigo":    99,
+		"descricao": "Novo",
+		"saldo":     8,
+		"preco":     88,
+	})
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusBadRequest, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "CODIGO_IMUTAVEL" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
+	}
+}
+
+func TestBaixarEstoqueSaldoInsuficienteRota(t *testing.T) {
+	router := setupRouterEstoque(t)
+
+	if err := db.DB.Create(&models.Produto{Codigo: 90, Descricao: "Placa", Saldo: 2, Preco: 500}).Error; err != nil {
+		t.Fatalf(formatoErroInserirBaseTeste, err)
+	}
+
+	res := performJSONRequest(t, router, http.MethodPost, "/produtos/90/baixa", map[string]any{
+		"quantidade": 3,
+	})
+
+	if res.Code != http.StatusConflict {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusConflict, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "SALDO_INSUFICIENTE" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
+	}
+
+	var produto models.Produto
+	if err := db.DB.Where(filtroCodigoTeste, 90).First(&produto).Error; err != nil {
+		t.Fatalf("erro ao buscar produto apos tentativa de baixa: %v", err)
+	}
+
+	if produto.Saldo != 2 {
+		t.Fatalf("saldo nao deveria mudar em caso de conflito: %d", produto.Saldo)
 	}
 }

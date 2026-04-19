@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 type Produto = {
   codigo: number;
@@ -54,8 +55,8 @@ type RespostaExclusaoNota = {
 export class NotasFiscais implements OnInit {
   private readonly http = inject(HttpClient);
 
-  private readonly urlProdutos = 'http://localhost:8080/produtos';
-  private readonly urlNotasFiscais = 'http://localhost:8081/notas-fiscais';
+  private readonly urlProdutos = `${environment.api.estoqueBaseUrl}/produtos`;
+  private readonly urlNotasFiscais = `${environment.api.faturamentoBaseUrl}/notas-fiscais`;
 
   produtosDisponiveis = signal<Produto[]>([]);
   itensNotaAtual = signal<ItemNotaPayload[]>([]);
