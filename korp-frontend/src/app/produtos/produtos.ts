@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 
 import { HttpClient } from '@angular/common/http';
 import { CommonModule, CurrencyPipe } from '@angular/common';
+import { environment } from '../../environments/environment';
 
 type Produto = {
   codigo: number;
@@ -19,7 +20,7 @@ type Produto = {
 })
 export class Produtos implements OnInit {
   private readonly http = inject(HttpClient);
-  private readonly urlProdutos = 'http://localhost:8080/produtos';
+  private readonly urlProdutos = `${environment.api.estoqueBaseUrl}/produtos`;
 
   produto: Produto = this.novoProdutoVazio();
   listaProdutos = signal<Produto[]>([]);

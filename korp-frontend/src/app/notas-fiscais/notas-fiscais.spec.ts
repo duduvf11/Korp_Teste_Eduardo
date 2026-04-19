@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { NotasFiscais } from './notas-fiscais';
+import { environment } from '../../environments/environment';
 
 type ProdutoMock = {
   codigo: number;
@@ -43,8 +44,8 @@ describe('NotasFiscais', () => {
   let fixture: ComponentFixture<NotasFiscais>;
   let httpMock: HttpTestingController;
 
-  const urlProdutos = 'http://localhost:8080/produtos';
-  const urlNotas = 'http://localhost:8081/notas-fiscais';
+  const urlProdutos = `${environment.api.estoqueBaseUrl}/produtos`;
+  const urlNotas = `${environment.api.faturamentoBaseUrl}/notas-fiscais`;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({

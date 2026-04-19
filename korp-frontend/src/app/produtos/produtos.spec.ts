@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { Produtos } from './produtos';
+import { environment } from '../../environments/environment';
 
 type ProdutoMock = {
   codigo: number;
@@ -20,7 +21,7 @@ describe('Produtos', () => {
   let fixture: ComponentFixture<Produtos>;
   let httpMock: HttpTestingController;
 
-  const urlProdutos = 'http://localhost:8080/produtos';
+  const urlProdutos = `${environment.api.estoqueBaseUrl}/produtos`;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
