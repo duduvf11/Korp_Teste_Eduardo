@@ -17,6 +17,7 @@ func main() {
 
 	r.POST("/notas-fiscais", controllers.CriarNotaFiscal)
 	r.GET("/notas-fiscais", controllers.ListarNotasFiscais)
+	r.POST("/notas-fiscais/:id/imprimir", controllers.ImprimirNota)
 
 	r.Run(":8081")
 }
