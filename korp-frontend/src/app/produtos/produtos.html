@@ -1,50 +1,101 @@
-<h3>Cadastrar Novo Produto</h3>
+<section class="produtos-card">
+  <h3>{{ modoEdicao() ? 'Editar Produto' : 'Cadastrar Novo Produto' }}</h3>
 
-<form (ngSubmit)="salvarProduto()">
+  @if (mensagemSucesso()) {
+    <p class="mensagem sucesso">{{ mensagemSucesso() }}</p>
+  }
 
-  <div>
-    <label for="descricao">Descrição:</label>
-    <input type="text" name="descricao" [(ngModel)]="produto.descricao" placeholder="Nome do produto">
+  @if (mensagemErro()) {
+    <p class="mensagem erro">{{ mensagemErro() }}</p>
+  }
+
+  <form class="produtos-form" (ngSubmit)="salvarProduto()">
+    <div class="form-grid">
+      <div class="campo">
+        <label for="codigo">Código:</label>
+        <input
+          type="number"
+          id="codigo"
+          name="codigo"
+          [(ngModel)]="produto.codigo"
+          min="1"
+          placeholder="Codigo do produto"
+          [disabled]="modoEdicao()"
+        >
+      </div>
+
+      <div class="campo">
+        <label for="descricao">Descrição:</label>
+        <input type="text" id="descricao" name="descricao" [(ngModel)]="produto.descricao" placeholder="Nome do produto">
+      </div>
+
+      <div class="campo">
+        <label for="saldo">Saldo:</label>
+        <input type="number" id="saldo" name="saldo" [(ngModel)]="produto.saldo" placeholder="Quantidade">
+      </div>
+
+      <div class="campo">
+        <label for="preco">Preço:</label>
+        <input type="number" id="preco" name="preco" [(ngModel)]="produto.preco" placeholder="Valor">
+      </div>
+    </div>
+
+    <div class="acoes-form">
+      <button class="btn btn-primary" type="submit">{{ modoEdicao() ? 'Atualizar Produto' : 'Salvar Produto' }}</button>
+      @if (modoEdicao()) {
+        <button class="btn btn-secondary" type="button" (click)="cancelarEdicao()">Cancelar Edição</button>
+      }
+    </div>
+  </form>
+</section>
+
+<section class="produtos-card">
+  <h3>Produtos em Estoque</h3>
+
+  <div class="tabela-scroll">
+    <table class="table-base">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Descrição</th>
+          <th>Saldo</th>
+          <th>Preço</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of listaProdutos(); track item.codigo) {
+          <tr>
+            <td data-label="Codigo">{{ item.codigo }}</td>
+            <td data-label="Descricao">{{ item.descricao }}</td>
+            <td data-label="Saldo">{{ item.saldo }}</td>
+            <td data-label="Preco">{{ item.preco | currency:'BRL' }}</td>
+            <td class="coluna-acoes" data-label="Acoes">
+              <button class="btn btn-secondary btn-sm" type="button" (click)="iniciarEdicao(item)">Editar</button>
+              <button class="btn btn-danger btn-sm" type="button" (click)="solicitarExclusaoProduto(item)">Deletar</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="linha-vazia" colspan="5">Nenhum produto cadastrado na despensa.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
+</section>
 
-  <div>
-    <label for="saldo">Saldo:</label>
-    <input type="number" name="saldo" [(ngModel)]="produto.saldo" placeholder="Quantidade">
+@if (confirmacaoExclusaoProduto(); as produtoExclusao) {
+  <div class="confirm-overlay">
+    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de produto">
+      <h4 class="confirm-title">Confirmar exclusão de produto</h4>
+      <p class="confirm-text">Você está prestes a excluir o produto <strong>{{ produtoExclusao.descricao }}</strong> (código <strong>{{ produtoExclusao.codigo }}</strong>).</p>
+      <p class="confirm-text">Essa ação não pode ser desfeita.</p>
+
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null">Voltar</button>
+        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoProduto()" [disabled]="produtoEmExclusaoCodigo() !== null">{{ textoBotaoConfirmarExclusaoProduto() }}</button>
+      </div>
+    </dialog>
   </div>
-
-  <div>
-    <label for="preco">Preço:</label>
-    <input type="number" name="preco" [(ngModel)]="produto.preco" placeholder="Valor">
-  </div>
-
-  <button type="submit">Salvar Produto</button>
-
-</form>
-
-<hr>
-<h3>Produtos em Estoque</h3>
-
-<table>
-  <thead>
-    <tr>
-      <th>Código</th>
-      <th>Descrição</th>
-      <th>Saldo</th>
-      <th>Preço</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (item of listaProdutos(); track item.codigo) {
-      <tr>
-        <td>{{ item.codigo }}</td>
-        <td>{{ item.descricao }}</td>
-        <td>{{ item.saldo }}</td>
-        <td>{{ item.preco | currency:'BRL' }}</td>
-      </tr>
-    } @empty {
-      <tr>
-        <td colspan="4">Nenhum produto cadastrado na despensa.</td>
-      </tr>
-    }
-  </tbody>
-</table>
+}
