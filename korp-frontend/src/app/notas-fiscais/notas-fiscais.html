@@ -1,25 +1,177 @@
-<h3>Emitir Nova Nota Fiscal</h3>
+<section class="card-notas">
+  <h3>Emitir Nova Nota Fiscal</h3>
+  <p class="status-inicial">Status inicial da nota: <strong>Aberta</strong></p>
 
-<div>
-  <label>Cliente:</label>
-  <input type="text" [(ngModel)]="notaAtual.cliente" placeholder="Nome do cliente">
-</div>
+  @if (mensagemSucesso()) {
+    <p class="mensagem sucesso">{{ mensagemSucesso() }}</p>
+  }
 
-<hr>
+  @if (mensagemErro()) {
+    <p class="mensagem erro">{{ mensagemErro() }}</p>
+  }
 
-<h4>Escolher Produtos</h4>
-<div>
-  <label for="produto">Produto:</label>
-  <select id="produto">
-    <option value="">Selecione um produto da prateleira...</option>
+  <div class="linha-formulario">
+    <div class="campo-inline campo-cliente">
+      <label for="cliente">Cliente:</label>
+      <input
+        id="cliente"
+        type="text"
+        name="cliente"
+        [(ngModel)]="clienteNotaAtual"
+        placeholder="Nome do cliente"
+      >
+    </div>
+  </div>
 
-    @for (item of produtosDisponiveis; track item.id) {
-      <option [value]="item.id">
-        {{ item.descricao }} - {{ item.preco | currency:'BRL' }}
-      </option>
+  <hr>
+
+  <h4>Escolher Produtos</h4>
+
+  <div class="linha-formulario linha-item">
+    <div class="campo-inline campo-produto">
+      <label for="produto">Produto:</label>
+      <select id="produto" name="produtoSelecionado" [(ngModel)]="produtoSelecionadoCodigo">
+        <option [ngValue]="null">Selecione um produto da prateleira...</option>
+
+        @for (item of produtosDisponiveis(); track trackProduto($index, item)) {
+          <option [ngValue]="item.codigo">
+            {{ item.descricao }} | Saldo: {{ item.saldo }} | {{ item.preco | currency:'BRL' }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div class="campo-inline campo-quantidade">
+      <label for="quantidade">Quantidade:</label>
+      <input
+        type="number"
+        id="quantidade"
+        name="quantidadeSelecionada"
+        [(ngModel)]="quantidadeSelecionada"
+        min="1"
+        placeholder="Qtd"
+      >
+    </div>
+
+    <button class="btn btn-secondary" type="button" (click)="adicionarItem()">Adicionar item</button>
+  </div>
+
+  <h4>Itens da nota em montagem</h4>
+
+  <ul class="lista-itens-montagem">
+    @for (item of itensNotaAtual(); track trackItemNotaAtual($index, item)) {
+      <li>
+        <span>
+          {{ obterDescricaoProduto(item.produto_id) }} - Quantidade: {{ item.quantidade }}
+        </span>
+        <button type="button" class="btn btn-danger btn-sm" (click)="removerItem(item.produto_id)">
+          Remover
+        </button>
+      </li>
+    } @empty {
+      <li>Nenhum item adicionado ainda.</li>
     }
-  </select>
+  </ul>
 
-  <label for="quantidade">Quantidade:</label>
-  <input type="number" id="quantidade" placeholder="Qtd">
-</div>
+  <button type="button" class="btn btn-primary botao-salvar-nota" [disabled]="salvandoNota()" (click)="salvarNotaFiscal()">
+    {{ salvandoNota() ? 'Salvando...' : 'Salvar Nota Fiscal' }}
+  </button>
+</section>
+
+<section class="card-notas">
+  <h3>Notas Fiscais Emitidas</h3>
+
+  @if (carregandoNotas()) {
+    <p>Carregando notas fiscais...</p>
+  }
+
+  <div class="tabela-scroll">
+    <table class="table-base">
+      <thead>
+        <tr>
+          <th>Número</th>
+          <th>Cliente</th>
+          <th>Status</th>
+          <th>Itens</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (nota of notasFiscais(); track trackNota($index, nota)) {
+          <tr>
+            <td data-label="Numero">{{ nota.id }}</td>
+            <td data-label="Cliente">{{ nota.cliente }}</td>
+            <td data-label="Status">
+              <span [class.status-aberta]="nota.esta_aberta" [class.status-fechada]="!nota.esta_aberta">
+                {{ nota.esta_aberta ? 'Aberta' : 'Fechada' }}
+              </span>
+            </td>
+            <td data-label="Itens" class="coluna-itens">
+              <ul class="lista-itens-nota">
+                @for (item of nota.itens; track trackItemNota($index, item)) {
+                  <li>
+                    {{ obterDescricaoProduto(item.produto_id) }} x {{ item.quantidade }}
+                  </li>
+                } @empty {
+                  <li>Sem itens cadastrados.</li>
+                }
+              </ul>
+            </td>
+            <td data-label="Acao" class="coluna-acao">
+              @if (nota.esta_aberta) {
+                <div class="acoes-nota">
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    type="button"
+                    (click)="imprimirNota(nota)"
+                    [disabled]="estaProcessandoNota(nota.id)"
+                  >
+                    {{ textoBotaoImpressao(nota) }}
+                  </button>
+
+                  <button
+                    class="btn btn-danger btn-sm"
+                    type="button"
+                    (click)="cancelarNota(nota)"
+                    [disabled]="estaProcessandoNota(nota.id)"
+                  >
+                    {{ textoBotaoCancelar(nota) }}
+                  </button>
+                </div>
+              } @else {
+                <button
+                  class="btn btn-danger btn-sm"
+                  type="button"
+                  (click)="solicitarExclusaoNota(nota)"
+                  [disabled]="estaProcessandoNota(nota.id)"
+                >
+                  {{ textoBotaoDeletar(nota) }}
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="linha-vazia" colspan="5">Nenhuma nota fiscal emitida ate o momento.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (confirmacaoExclusaoNota(); as notaExclusao) {
+  <div class="confirm-overlay">
+    <dialog class="confirm-modal" open aria-label="Confirmacao de exclusao de nota">
+      <h4 class="confirm-title">Confirmar exclusão de nota fiscal</h4>
+      <p class="confirm-text">Você está prestes a excluir a nota número <strong>{{ notaExclusao.id }}</strong> do cliente <strong>{{ notaExclusao.cliente }}</strong>.</p>
+      <p class="confirm-text">Essa ação não pode ser desfeita.</p>
+
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" type="button" (click)="cancelarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null">Voltar</button>
+        <button class="btn btn-danger" type="button" (click)="confirmarExclusaoNota()" [disabled]="notaEmExclusaoId() !== null">{{ textoBotaoConfirmarExclusaoNota() }}</button>
+      </div>
+    </dialog>
+  </div>
+}
