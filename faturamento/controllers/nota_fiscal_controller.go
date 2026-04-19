@@ -244,3 +244,89 @@ func ImprimirNota(c *gin.Context) {
 		"nota":     nota,
 	})
 }
+
+func CancelarNota(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", "ID da nota fiscal invalido.", nil)
+		return
+	}
+
+	var nota models.NotaFiscal
+	err = db.DB.Preload("Item").First(&nota, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", "Nota fiscal nao encontrada.", nil)
+		return
+	}
+
+	if err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar a nota fiscal.", err.Error())
+		return
+	}
+
+	if !nota.EstaAberta {
+		responderErro(c, http.StatusConflict, "NOTA_FECHADA", "Apenas notas em aberto podem ser canceladas.", gin.H{"nota_id": nota.ID})
+		return
+	}
+
+	nota.EstaAberta = false
+	if err := db.DB.Save(&nota).Error; err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel cancelar a nota fiscal.", gin.H{
+			"nota_id":  nota.ID,
+			"problema": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mensagem": "Nota fiscal cancelada com sucesso.",
+		"nota":     nota,
+	})
+}
+
+func DeletarNota(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", "ID da nota fiscal invalido.", nil)
+		return
+	}
+
+	var nota models.NotaFiscal
+	err = db.DB.First(&nota, id).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", "Nota fiscal nao encontrada.", nil)
+		return
+	}
+
+	if err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar a nota fiscal.", err.Error())
+		return
+	}
+
+	if nota.EstaAberta {
+		responderErro(c, http.StatusConflict, "NOTA_ABERTA", "A nota ainda esta aberta. Cancele ou imprima antes de deletar.", gin.H{"nota_id": nota.ID})
+		return
+	}
+
+	err = db.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("nota_fiscal_id = ?", nota.ID).Delete(&models.ItemNota{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Delete(&models.NotaFiscal{}, nota.ID).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel deletar a nota fiscal.", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mensagem": "Nota fiscal deletada com sucesso.",
+		"nota_id":  nota.ID,
+	})
+}
