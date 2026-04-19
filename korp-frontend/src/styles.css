@@ -183,7 +183,7 @@ select:focus {
 }
 
 .confirm-modal {
-	width: min(460px, 100%);
+	width: min(360px, 100%);
 	margin: 0;
 	position: static;
 	background-color: var(--bg-surface);
