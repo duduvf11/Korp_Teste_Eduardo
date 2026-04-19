@@ -17,6 +17,8 @@ func main() {
 
 	r.POST("/produtos", controllers.CriarProduto)
 	r.GET("/produtos", controllers.ListarProdutos)
+
+	r.POST("/produtos/:id/baixa", controllers.BaixarEstoque)
 	
 	r.Run(":8080")
 }
