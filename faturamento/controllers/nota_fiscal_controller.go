@@ -32,9 +32,18 @@ type erroIntegracaoEstoque struct {
 }
 
 func responderErro(c *gin.Context, status int, codigo, mensagem string, detalhes any) {
+	c.Set("erro_codigo", codigo)
+	c.Set("erro_mensagem", mensagem)
+
 	resposta := gin.H{
 		"codigo": codigo,
 		"erro":   mensagem,
+	}
+
+	if requestID, existe := c.Get("request_id"); existe {
+		if requestIDTexto, ok := requestID.(string); ok && requestIDTexto != "" {
+			resposta["request_id"] = requestIDTexto
+		}
 	}
 
 	if detalhes != nil {
