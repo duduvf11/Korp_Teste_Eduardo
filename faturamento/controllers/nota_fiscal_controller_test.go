@@ -21,7 +21,10 @@ import (
 const (
 	rotaNotasFiscaisTeste        = "/notas-fiscais"
 	clientePadraoTeste           = "Cliente A"
+	headerContentTypeTeste       = "Content-Type"
+	valorJSONTeste               = "application/json"
 	formatoStatusInesperadoTeste = "status inesperado: esperado %d, obtido %d. body=%s"
+	formatoCodigoErroInesperado  = "codigo de erro inesperado: %+v"
 )
 
 func setupRouterFaturamento(t *testing.T) *gin.Engine {
@@ -67,7 +70,7 @@ func performJSONRequest(t *testing.T, router *gin.Engine, method, path string, p
 
 	req := httptest.NewRequest(method, path, body)
 	if payload != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(headerContentTypeTeste, valorJSONTeste)
 	}
 
 	res := httptest.NewRecorder()
@@ -165,7 +168,7 @@ func TestImprimirNotaRota(t *testing.T) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentTypeTeste, valorJSONTeste)
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"mensagem":"ok"}`))
 	}))
@@ -241,5 +244,85 @@ func TestDeletarNotaRota(t *testing.T) {
 
 	if len(itens) != 0 {
 		t.Fatalf("itens da nota deveriam ter sido removidos, encontrados: %d", len(itens))
+	}
+}
+
+func TestImprimirNotaFalhaIntegracaoMantemNotaAberta(t *testing.T) {
+	router := setupRouterFaturamento(t)
+	nota := inserirNota(t, "Cliente Falha Integracao", true, []models.ItemNota{{ProdutoID: 20, Quantidade: 2}})
+
+	servidorEstoque := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		w.Header().Set(headerContentTypeTeste, valorJSONTeste)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"erro":"Estoque indisponivel para impressao"}`))
+	}))
+	defer servidorEstoque.Close()
+
+	valorAnterior := os.Getenv("ESTOQUE_SERVICE_URL")
+	t.Cleanup(func() {
+		if valorAnterior == "" {
+			_ = os.Unsetenv("ESTOQUE_SERVICE_URL")
+			return
+		}
+
+		_ = os.Setenv("ESTOQUE_SERVICE_URL", valorAnterior)
+	})
+
+	if err := os.Setenv("ESTOQUE_SERVICE_URL", servidorEstoque.URL); err != nil {
+		t.Fatalf("erro ao definir ESTOQUE_SERVICE_URL: %v", err)
+	}
+
+	res := performJSONRequest(t, router, http.MethodPost, fmt.Sprintf("/notas-fiscais/%d/imprimir", nota.ID), map[string]any{})
+	if res.Code != http.StatusServiceUnavailable {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusServiceUnavailable, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "BAIXA_ESTOQUE_FALHOU" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
+	}
+
+	var notaAtualizada models.NotaFiscal
+	if err := db.DB.First(&notaAtualizada, nota.ID).Error; err != nil {
+		t.Fatalf("erro ao consultar nota apos falha de integracao: %v", err)
+	}
+
+	if !notaAtualizada.EstaAberta {
+		t.Fatalf("nota deveria permanecer aberta quando a integracao com estoque falha")
+	}
+}
+
+func TestCancelarNotaFechadaRota(t *testing.T) {
+	router := setupRouterFaturamento(t)
+	nota := inserirNota(t, "Cliente Ja Fechado", false, []models.ItemNota{{ProdutoID: 30, Quantidade: 1}})
+
+	res := performJSONRequest(t, router, http.MethodPost, fmt.Sprintf("/notas-fiscais/%d/cancelar", nota.ID), map[string]any{})
+	if res.Code != http.StatusConflict {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusConflict, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "NOTA_FECHADA" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
+	}
+}
+
+func TestDeletarNotaAbertaRota(t *testing.T) {
+	router := setupRouterFaturamento(t)
+	nota := inserirNota(t, "Cliente Aberto", true, []models.ItemNota{{ProdutoID: 40, Quantidade: 1}})
+
+	res := performJSONRequest(t, router, http.MethodDelete, fmt.Sprintf("/notas-fiscais/%d", nota.ID), nil)
+	if res.Code != http.StatusConflict {
+		t.Fatalf(formatoStatusInesperadoTeste, http.StatusConflict, res.Code, res.Body.String())
+	}
+
+	resposta := decodeJSON[map[string]any](t, res)
+	if resposta["codigo"] != "NOTA_ABERTA" {
+		t.Fatalf(formatoCodigoErroInesperado, resposta)
 	}
 }
