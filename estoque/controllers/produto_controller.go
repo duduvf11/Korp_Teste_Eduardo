@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+const filtroCodigo = "codigo = ?"
+
 type RequisicaoBaixa struct {
 	Quantidade int `json:"quantidade"`
 }
@@ -80,13 +82,13 @@ func CriarProduto(c *gin.Context) {
 	}
 
 	var produtoExistente models.Produto
-	errBusca := db.DB.Where("codigo = ?", produto.Codigo).First(&produtoExistente).Error
+	errBusca := db.DB.Where(filtroCodigo, produto.Codigo).First(&produtoExistente).Error
 	if errBusca == nil {
 		responderErro(c, http.StatusConflict, "CODIGO_DUPLICADO", "Ja existe um produto cadastrado com esse codigo.", gin.H{"codigo": produto.Codigo})
 		return
 	}
 
-	if errBusca != nil && !errors.Is(errBusca, gorm.ErrRecordNotFound) {
+	if !errors.Is(errBusca, gorm.ErrRecordNotFound) {
 		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel validar o codigo do produto.", errBusca.Error())
 		return
 	}
@@ -142,7 +144,7 @@ func AtualizarProduto(c *gin.Context) {
 	}
 
 	var produto models.Produto
-	err = db.DB.Where("codigo = ?", codigoProduto).First(&produto).Error
+	err = db.DB.Where(filtroCodigo, codigoProduto).First(&produto).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		responderErro(c, http.StatusNotFound, "PRODUTO_NAO_ENCONTRADO", "Produto nao encontrado para atualizacao.", gin.H{"codigo": codigoProduto})
 		return
@@ -158,7 +160,7 @@ func AtualizarProduto(c *gin.Context) {
 	produto.Preco = req.Preco
 
 	if err := db.DB.Model(&models.Produto{}).
-		Where("codigo = ?", codigoProduto).
+		Where(filtroCodigo, codigoProduto).
 		Updates(map[string]any{
 			"descricao": produto.Descricao,
 			"saldo":     produto.Saldo,
@@ -179,7 +181,7 @@ func DeletarProduto(c *gin.Context) {
 		return
 	}
 
-	resultado := db.DB.Where("codigo = ?", codigoProduto).Delete(&models.Produto{})
+	resultado := db.DB.Where(filtroCodigo, codigoProduto).Delete(&models.Produto{})
 	if resultado.Error != nil {
 		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel deletar o produto.", resultado.Error.Error())
 		return
@@ -221,7 +223,7 @@ func BaixarEstoque(c *gin.Context) {
 	err = db.DB.Transaction(func(tx *gorm.DB) error {
 		var produto models.Produto
 
-		errBusca := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("codigo = ?", id).First(&produto).Error
+		errBusca := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where(filtroCodigo, id).First(&produto).Error
 		if errors.Is(errBusca, gorm.ErrRecordNotFound) {
 			return &ErroBaixaEstoque{
 				StatusCode: http.StatusNotFound,
@@ -259,7 +261,7 @@ func BaixarEstoque(c *gin.Context) {
 		saldoNovo = produto.Saldo - req.Quantidade
 
 		errAtualizacao := tx.Model(&models.Produto{}).
-			Where("codigo = ?", produto.Codigo).
+			Where(filtroCodigo, produto.Codigo).
 			Update("saldo", saldoNovo).Error
 		if errAtualizacao != nil {
 			return &ErroBaixaEstoque{
