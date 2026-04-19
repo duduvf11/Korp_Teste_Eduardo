@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors"
-	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/db"
 	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/controllers"
+	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/db"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -17,8 +17,10 @@ func main() {
 
 	r.POST("/produtos", controllers.CriarProduto)
 	r.GET("/produtos", controllers.ListarProdutos)
+	r.PUT("/produtos/:id", controllers.AtualizarProduto)
+	r.DELETE("/produtos/:id", controllers.DeletarProduto)
 
 	r.POST("/produtos/:id/baixa", controllers.BaixarEstoque)
-	
+
 	r.Run(":8080")
 }

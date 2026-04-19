@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/db"
 	"github.com/duduvf11/Korp_Teste_Eduardo/estoque/models"
@@ -15,6 +16,13 @@ import (
 
 type RequisicaoBaixa struct {
 	Quantidade int `json:"quantidade"`
+}
+
+type RequisicaoAtualizacaoProduto struct {
+	Codigo    *int    `json:"codigo"`
+	Descricao string  `json:"descricao"`
+	Saldo     int     `json:"saldo"`
+	Preco     float64 `json:"preco"`
 }
 
 type ErroBaixaEstoque struct {
@@ -45,19 +53,147 @@ func CriarProduto(c *gin.Context) {
 	var produto models.Produto
 
 	if err := c.ShouldBindJSON(&produto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"erro": "Dados inválidos"})
+		responderErro(c, http.StatusBadRequest, "FORMATO_INVALIDO", "Dados invalidos para cadastro de produto.", err.Error())
 		return
 	}
 
-	db.DB.Create(&produto)
+	produto.Descricao = strings.TrimSpace(produto.Descricao)
+
+	if produto.Codigo <= 0 {
+		responderErro(c, http.StatusBadRequest, "CODIGO_INVALIDO", "O codigo do produto deve ser maior que zero.", nil)
+		return
+	}
+
+	if produto.Descricao == "" {
+		responderErro(c, http.StatusBadRequest, "DESCRICAO_OBRIGATORIA", "A descricao do produto e obrigatoria.", nil)
+		return
+	}
+
+	if produto.Saldo < 0 {
+		responderErro(c, http.StatusBadRequest, "SALDO_INVALIDO", "O saldo do produto nao pode ser negativo.", nil)
+		return
+	}
+
+	if produto.Preco < 0 {
+		responderErro(c, http.StatusBadRequest, "PRECO_INVALIDO", "O preco do produto nao pode ser negativo.", nil)
+		return
+	}
+
+	var produtoExistente models.Produto
+	errBusca := db.DB.Where("codigo = ?", produto.Codigo).First(&produtoExistente).Error
+	if errBusca == nil {
+		responderErro(c, http.StatusConflict, "CODIGO_DUPLICADO", "Ja existe um produto cadastrado com esse codigo.", gin.H{"codigo": produto.Codigo})
+		return
+	}
+
+	if errBusca != nil && !errors.Is(errBusca, gorm.ErrRecordNotFound) {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel validar o codigo do produto.", errBusca.Error())
+		return
+	}
+
+	if err := db.DB.Create(&produto).Error; err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel salvar o produto.", err.Error())
+		return
+	}
+
 	c.JSON(http.StatusCreated, produto)
 }
 
 func ListarProdutos(c *gin.Context) {
 	var produtos []models.Produto
 
-	db.DB.Find(&produtos)
+	db.DB.Order("codigo asc").Find(&produtos)
 	c.JSON(http.StatusOK, produtos)
+}
+
+func AtualizarProduto(c *gin.Context) {
+	idTexto := c.Param("id")
+	codigoProduto, err := strconv.Atoi(idTexto)
+	if err != nil || codigoProduto <= 0 {
+		responderErro(c, http.StatusBadRequest, "CODIGO_INVALIDO", "Codigo do produto invalido.", nil)
+		return
+	}
+
+	var req RequisicaoAtualizacaoProduto
+	if err := c.ShouldBindJSON(&req); err != nil {
+		responderErro(c, http.StatusBadRequest, "FORMATO_INVALIDO", "Dados invalidos para atualizacao de produto.", err.Error())
+		return
+	}
+
+	if req.Codigo != nil && *req.Codigo != codigoProduto {
+		responderErro(c, http.StatusBadRequest, "CODIGO_IMUTAVEL", "O codigo do produto nao pode ser alterado.", gin.H{"codigo_rota": codigoProduto, "codigo_payload": *req.Codigo})
+		return
+	}
+
+	req.Descricao = strings.TrimSpace(req.Descricao)
+	if req.Descricao == "" {
+		responderErro(c, http.StatusBadRequest, "DESCRICAO_OBRIGATORIA", "A descricao do produto e obrigatoria.", nil)
+		return
+	}
+
+	if req.Saldo < 0 {
+		responderErro(c, http.StatusBadRequest, "SALDO_INVALIDO", "O saldo do produto nao pode ser negativo.", nil)
+		return
+	}
+
+	if req.Preco < 0 {
+		responderErro(c, http.StatusBadRequest, "PRECO_INVALIDO", "O preco do produto nao pode ser negativo.", nil)
+		return
+	}
+
+	var produto models.Produto
+	err = db.DB.Where("codigo = ?", codigoProduto).First(&produto).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		responderErro(c, http.StatusNotFound, "PRODUTO_NAO_ENCONTRADO", "Produto nao encontrado para atualizacao.", gin.H{"codigo": codigoProduto})
+		return
+	}
+
+	if err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar o produto para atualizacao.", err.Error())
+		return
+	}
+
+	produto.Descricao = req.Descricao
+	produto.Saldo = req.Saldo
+	produto.Preco = req.Preco
+
+	if err := db.DB.Model(&models.Produto{}).
+		Where("codigo = ?", codigoProduto).
+		Updates(map[string]any{
+			"descricao": produto.Descricao,
+			"saldo":     produto.Saldo,
+			"preco":     produto.Preco,
+		}).Error; err != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel atualizar o produto.", err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, produto)
+}
+
+func DeletarProduto(c *gin.Context) {
+	idTexto := c.Param("id")
+	codigoProduto, err := strconv.Atoi(idTexto)
+	if err != nil || codigoProduto <= 0 {
+		responderErro(c, http.StatusBadRequest, "CODIGO_INVALIDO", "Codigo do produto invalido.", nil)
+		return
+	}
+
+	resultado := db.DB.Where("codigo = ?", codigoProduto).Delete(&models.Produto{})
+	if resultado.Error != nil {
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel deletar o produto.", resultado.Error.Error())
+		return
+	}
+
+	if resultado.RowsAffected == 0 {
+		responderErro(c, http.StatusNotFound, "PRODUTO_NAO_ENCONTRADO", "Produto nao encontrado para delecao.", gin.H{"codigo": codigoProduto})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"mensagem": "Produto deletado com sucesso.",
+		"codigo":   codigoProduto,
+	})
 }
 
 func BaixarEstoque(c *gin.Context) {
