@@ -1,10 +1,9 @@
 import { Component, signal } from '@angular/core';
-import { Produtos } from './produtos/produtos';
-import { NotasFiscais } from './notas-fiscais/notas-fiscais';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [Produtos, NotasFiscais],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
