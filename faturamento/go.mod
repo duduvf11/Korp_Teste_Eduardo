@@ -4,7 +4,18 @@ go 1.26.2
 
 require github.com/gin-gonic/gin v1.12.0
 
-require github.com/gin-contrib/cors v1.7.7 // indirect
+require (
+	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/gin-contrib/cors v1.7.7 // indirect
+	github.com/glebarez/go-sqlite v1.21.2 // indirect
+	github.com/glebarez/sqlite v1.11.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	modernc.org/libc v1.22.5 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.5.0 // indirect
+	modernc.org/sqlite v1.23.1 // indirect
+)
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect

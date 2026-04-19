@@ -18,6 +18,12 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	mensagemIDNotaFiscalInvalido     = "ID da nota fiscal invalido."
+	mensagemNotaFiscalNaoEncontrada  = "Nota fiscal nao encontrada."
+	mensagemConsultaNotaFiscalFalhou = "Nao foi possivel consultar a nota fiscal."
+)
+
 type erroIntegracaoEstoque struct {
 	statusCode int
 	codigo     string
@@ -188,7 +194,7 @@ func ListarNotasFiscais(c *gin.Context) {
 func ImprimirNota(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", "ID da nota fiscal invalido.", nil)
+		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", mensagemIDNotaFiscalInvalido, nil)
 		return
 	}
 
@@ -196,12 +202,12 @@ func ImprimirNota(c *gin.Context) {
 
 	err = db.DB.Preload("Item").First(&nota, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", "Nota fiscal nao encontrada.", nil)
+		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", mensagemNotaFiscalNaoEncontrada, nil)
 		return
 	}
 
 	if err != nil {
-		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar a nota fiscal.", err.Error())
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", mensagemConsultaNotaFiscalFalhou, err.Error())
 		return
 	}
 
@@ -248,19 +254,19 @@ func ImprimirNota(c *gin.Context) {
 func CancelarNota(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", "ID da nota fiscal invalido.", nil)
+		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", mensagemIDNotaFiscalInvalido, nil)
 		return
 	}
 
 	var nota models.NotaFiscal
 	err = db.DB.Preload("Item").First(&nota, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", "Nota fiscal nao encontrada.", nil)
+		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", mensagemNotaFiscalNaoEncontrada, nil)
 		return
 	}
 
 	if err != nil {
-		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar a nota fiscal.", err.Error())
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", mensagemConsultaNotaFiscalFalhou, err.Error())
 		return
 	}
 
@@ -287,19 +293,19 @@ func CancelarNota(c *gin.Context) {
 func DeletarNota(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", "ID da nota fiscal invalido.", nil)
+		responderErro(c, http.StatusBadRequest, "ID_INVALIDO", mensagemIDNotaFiscalInvalido, nil)
 		return
 	}
 
 	var nota models.NotaFiscal
 	err = db.DB.First(&nota, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", "Nota fiscal nao encontrada.", nil)
+		responderErro(c, http.StatusNotFound, "NOTA_NAO_ENCONTRADA", mensagemNotaFiscalNaoEncontrada, nil)
 		return
 	}
 
 	if err != nil {
-		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", "Nao foi possivel consultar a nota fiscal.", err.Error())
+		responderErro(c, http.StatusInternalServerError, "ERRO_BANCO", mensagemConsultaNotaFiscalFalhou, err.Error())
 		return
 	}
 
